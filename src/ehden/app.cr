@@ -108,11 +108,11 @@ module Ehden
       @clock = SF::Clock.new
       @character = Character.new(@clock.elapsed_time.as_milliseconds)
       @emitters = [
-        Emitter.new(self, pos: SF.vector2f(50, 50), rate: 500, dir: SF.vector2f(0.4, 0.2)),
-        Emitter.new(self, pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
-        Emitter.new(self, pos: SF.vector2f(40, 40), rate: 500, dir: SF.vector2f(0.1, 0.3)),
-        Emitter.new(self, pos: SF.vector2f(606, 600), rate: 100, dir: SF.vector2f(-0.3, -0.2)),
-        Emitter.new(self, pos: SF.vector2f(800, 250), rate: 500, dir: SF.vector2f(-0.3, -0.4)),
+        Emitter.new(self, pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
+        Emitter.new(self, pos: SF.vector2f(250, 250), rate: 1000, dir: SF.vector2f(0, 0.2)),
+        Emitter.new(self, pos: SF.vector2f(40, 40), rate: 1000, dir: SF.vector2f(0.1, 0.3)),
+        Emitter.new(self, pos: SF.vector2f(606, 600), rate: 1000, dir: SF.vector2f(-0.3, -0.2)),
+        Emitter.new(self, pos: SF.vector2f(800, 250), rate: 1000, dir: SF.vector2f(-0.3, -0.4)),
       ]
 
       @title_music.open_from_file("./src/ehden/title.ogg") || raise "no music!"
