@@ -1,0 +1,6 @@
+version: 1.0
+shards:
+  crsfml:
+    github: BlaXpirit/crsfml
+    commit: 4242bd7091f8bc42d9cf6d2180449886ba9d2f7c
+

@@ -1,0 +1,12 @@
+name: ehden
+version: 0.1.0
+
+authors:
+  - Joshua Hull <joshbuddy@gmail.com>
+
+license: MIT
+
+dependencies:
+  crsfml:
+    github: BlaXpirit/crsfml
+    version: 2.4.2
