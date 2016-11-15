@@ -21,7 +21,8 @@ module Ehden
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead.png")
       @dead = false
-      @kill_time = SF::Clock.new
+      @kill_time = 2
+      @immortal = false
 
       # Create a sprite
       @sprite = SF::Sprite.new
@@ -32,7 +33,6 @@ module Ehden
     end
 
     def move(direction : SF::Vector2f, current : Int32)
-      revive if @dead && !@kill_time.nil? && @kill_time.elapsed_time.as_seconds > 2
       return if @dead
       elapsed = current - @current
       @pos += direction
@@ -46,14 +46,23 @@ module Ehden
 
     def kill
       return if @dead
+      return if @immortal
       @dead = true
       @sprite.texture = @dead_texture
-      @kill_time = SF::Clock.new
+      spawn do
+        sleep @kill_time.seconds
+        revive
+      end
     end
 
     def revive
       @dead = false
       @sprite.texture = @alive_texture
+      @immortal = true
+      spawn do
+        sleep 2.seconds
+        @immortal = false
+      end
     end
   end
 
@@ -68,10 +77,10 @@ module Ehden
   end
 
   class App
-    LEFT = SF.vector2f(-1, 0)
-    UP =  SF.vector2f(0, -1)
-    RIGHT =  SF.vector2f(1, 0)
-    DOWN = SF.vector2f(0, 1)
+    LEFT  = SF.vector2f(-1, 0)
+    UP    = SF.vector2f(0, -1)
+    RIGHT = SF.vector2f(1, 0)
+    DOWN  = SF.vector2f(0, 1)
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(800, 800), "Slider")
@@ -164,9 +173,9 @@ module Ehden
           @character.kill
           window.clear SF::Color::Red
           break
-       end
-       circle.position = position
-       window.draw circle
+        end
+        circle.position = position
+        window.draw circle
       end
       @character.render(window)
     end
@@ -177,7 +186,7 @@ module Ehden
 
     def move(direction : SF::Vector2f | Nil)
       return if direction.nil?
-      @character.move(direction, @clock.elapsed_time.as_milliseconds) 
+      @character.move(direction, @clock.elapsed_time.as_milliseconds)
     end
   end
 end
