@@ -14,23 +14,25 @@ module Ehden
   end
 
   class Character
-    getter pos
+    getter pos, dead
 
     def initialize(@current : Int32)
       @pos = SF.vector2f(30, 30)
-      texture = SF::Texture.from_file("./src/ehden/ehden_front.png")
+      @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead.png")
       @dead = false
+      @kill_time = SF::Clock.new
 
       # Create a sprite
       @sprite = SF::Sprite.new
-      @sprite.texture = texture
+      @sprite.texture = @alive_texture
       @sprite.texture_rect = SF.int_rect(10, 10, 50, 30)
       @sprite.color = SF.color(255, 255, 255, 200)
       @sprite.position = @pos
     end
 
     def move(direction : SF::Vector2f, current : Int32)
+      revive if @dead && !@kill_time.nil? && @kill_time.elapsed_time.as_seconds > 2
       return if @dead
       elapsed = current - @current
       @pos += direction
@@ -46,6 +48,12 @@ module Ehden
       return if @dead
       @dead = true
       @sprite.texture = @dead_texture
+      @kill_time = SF::Clock.new
+    end
+
+    def revive
+      @dead = false
+      @sprite.texture = @alive_texture
     end
   end
 
@@ -60,6 +68,11 @@ module Ehden
   end
 
   class App
+    LEFT = SF.vector2f(-1, 0)
+    UP =  SF.vector2f(0, -1)
+    RIGHT =  SF.vector2f(1, 0)
+    DOWN = SF.vector2f(0, 1)
+
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(800, 800), "Slider")
       app = App.new
@@ -131,23 +144,29 @@ module Ehden
     end
 
     def render(window)
-      window.clear SF::Color::Black
+      if @character.dead
+        window.clear SF::Color::Red
+      else
+        window.clear SF::Color::Black
+      end
       current = @clock.elapsed_time.as_milliseconds
       circle = SF::CircleShape.new
       circle.radius = 5
       circle.fill_color = SF::Color::Red
       @bullets.each do |bullet|
         position = bullet.position(current)
-        if position.x - 5 < @character.pos.x && position.x + 5 > @character.pos.x && position.y - 5 < @character.pos.y && position.y + 5 > @character.pos.y
-          @character.kill
-        end
-        circle.position = position
-        window.draw circle
         if position.x < 0 && position.y < 0
           @bullets.delete(bullet)
         elsif position.x > 800 && position.y > 800
           @bullets.delete(bullet)
         end
+        if position.x - 5 < @character.pos.x && position.x + 5 > @character.pos.x && position.y - 5 < @character.pos.y && position.y + 5 > @character.pos.y
+          @character.kill
+          window.clear SF::Color::Red
+          break
+       end
+       circle.position = position
+       window.draw circle
       end
       @character.render(window)
     end
@@ -156,8 +175,9 @@ module Ehden
       @bullets << Bullet.new(@clock.elapsed_time.as_milliseconds, pos, dir)
     end
 
-    def move(direction : SF::Vector2f)
-      @character.move(direction, @clock.elapsed_time.as_milliseconds)
+    def move(direction : SF::Vector2f | Nil)
+      return if direction.nil?
+      @character.move(direction, @clock.elapsed_time.as_milliseconds) 
     end
   end
 end
