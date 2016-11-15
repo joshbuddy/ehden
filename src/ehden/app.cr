@@ -78,12 +78,12 @@ module Ehden
           direction.x += 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Right)
           app.move(direction)
           app.render(window)
-          window.display
-          Fiber.yield
         else
           app.render_title(window)
           app.start if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
         end
+        window.display
+        Fiber.yield
       end
     end
 
@@ -121,7 +121,13 @@ module Ehden
 
     def render_title(window)
       window.clear SF::Color::Black
-      window
+      wb_shader = SF::Shader.from_file("./src/ehden/shaders/wave.vert", "./src/ehden/shaders/blur.frag")
+      wb_shader.wave_phase @clock.elapsed_time.as_milliseconds
+      wb_shader.wave_amplitude 40, 40
+      wb_shader.blur_radius 20
+      font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
+      text = SF::Text.new("EHDEN!!!!", font, 200)
+      window.draw text, SF::RenderStates.new(shader: wb_shader)
     end
 
     def render(window)
