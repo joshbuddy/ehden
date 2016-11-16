@@ -51,8 +51,8 @@ module Ehden
 
     def initialize(@current : Int32)
       @pos = SF.vector2f(30, 30)
-      @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front.png")
-      @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead.png")
+      @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
+      @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @dead = false
       @kill_time = 2
       @immortal = false
@@ -60,7 +60,7 @@ module Ehden
       # Create a sprite
       @sprite = SF::Sprite.new
       @sprite.texture = @alive_texture
-      @sprite.texture_rect = SF.int_rect(10, 10, 50, 30)
+      # @sprite.texture_rect = SF.int_rect(10, 10, 50, 30)
       @sprite.color = SF.color(255, 255, 255, 200)
       @sprite.position = @pos
     end
@@ -205,7 +205,7 @@ module Ehden
         position = bullet.render(window, current)
         xdiff = position.x - @character.pos.x
         ydiff = position.y - @character.pos.y
-        if (xdiff * xdiff + ydiff * ydiff) < 150
+        if (xdiff * xdiff + ydiff * ydiff) < 300
           bullet.render(window, current)
           bullet.killer = true
           @character.kill
