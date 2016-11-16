@@ -20,6 +20,32 @@ module Ehden
     end
   end
 
+  class Sprinkler < Emitter
+    @rotation = 0
+
+    def initialize(@pos : SF::Vector2f, @rate : Int32, @dir : SF::Vector2f)
+    end
+
+    def start(app)
+      spawn do
+        loop do
+          sleep @rate.milliseconds
+
+          cos = Math.cos(Math::PI * 2 * @rotation.to_f / 100)
+          sin = Math.sin(Math::PI * 2 * @rotation.to_f / 100)
+          dir = SF.vector2f(
+            @dir.x * cos - @dir.y * sin,
+            @dir.x * sin + @dir.y * cos,
+          )
+          puts "dir #{dir}"
+          @rotation += 1
+          @rotation = 0 if @rotation == 100
+          app.add_bullet(@pos, dir)
+        end
+      end
+    end
+  end
+
   class Character
     getter pos, dead
 
@@ -136,10 +162,10 @@ module Ehden
       @character = Character.new(@clock.elapsed_time.as_milliseconds)
       @emitters = [
         Shooter.new(pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
-        Shooter.new(pos: SF.vector2f(250, 250), rate: 1000, dir: SF.vector2f(0, 0.2)),
+        Sprinkler.new(pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
         Shooter.new(pos: SF.vector2f(40, 40), rate: 1000, dir: SF.vector2f(0.1, 0.3)),
         Shooter.new(pos: SF.vector2f(606, 600), rate: 1000, dir: SF.vector2f(-0.3, -0.2)),
-        Shooter.new(pos: SF.vector2f(800, 250), rate: 1000, dir: SF.vector2f(-0.3, -0.4)),
+        Sprinkler.new(pos: SF.vector2f(800, 250), rate: 500, dir: SF.vector2f(-0.3, -0.4)),
       ]
 
       @emitters.each { |e| e.start(self) }
