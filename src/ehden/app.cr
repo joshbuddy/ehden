@@ -74,12 +74,23 @@ module Ehden
   end
 
   class Bullet
+    property killer = false
+
     def initialize(@start_time : Int32, @pos : SF::Vector2f, @dir : SF::Vector2f)
     end
 
     def position(current_time)
       elapsed = current_time - @start_time
       vec = SF.vector2f(@dir.x * elapsed + @pos.x, @dir.y * elapsed + @pos.y)
+    end
+
+    def render(window, current : Int32) : SF::Vector2f
+      circle = SF::CircleShape.new
+      circle.radius = 5
+      circle.fill_color = @killer ? SF::Color::Red : SF::Color::White
+      circle.position = position(current)
+      window.draw circle
+      circle.position
     end
   end
 
@@ -162,29 +173,17 @@ module Ehden
     end
 
     def render(window)
-      if @character.dead
-        window.clear SF::Color::Red
-      else
-        window.clear SF::Color::Black
-      end
+      window.clear SF::Color::Black
       current = @clock.elapsed_time.as_milliseconds
-      circle = SF::CircleShape.new
-      circle.radius = 5
-      circle.fill_color = SF::Color::Red
       @bullets.each do |bullet|
-        position = bullet.position(current)
-        if position.x < 0 && position.y < 0
-          @bullets.delete(bullet)
-        elsif position.x > 800 && position.y > 800
-          @bullets.delete(bullet)
-        end
-        if position.x - 5 < @character.pos.x && position.x + 5 > @character.pos.x && position.y - 5 < @character.pos.y && position.y + 5 > @character.pos.y
+        position = bullet.render(window, current)
+        xdiff = position.x - @character.pos.x
+        ydiff = position.y - @character.pos.y
+        if (xdiff * xdiff + ydiff * ydiff) < 150
+          bullet.render(window, current)
+          bullet.killer = true
           @character.kill
-          window.clear SF::Color::Red
-          break
         end
-        circle.position = position
-        window.draw circle
       end
       @character.render(window)
     end
