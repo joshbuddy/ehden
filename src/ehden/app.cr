@@ -138,6 +138,22 @@ module Ehden
 
         if app.playing?
           direction = SF.vector2f(0, 0)
+
+          if SF::Joystick.connected?(0)
+            position_x = SF::Joystick.get_axis_position(0, SF::Joystick::X)
+            position_y = SF::Joystick.get_axis_position(0, SF::Joystick::Y)
+            if position_x == 100
+              direction.x += 1
+            elsif position_x == -100
+              direction.x -= 1
+            end
+            if position_y == 100
+              direction.y += 1
+            elsif position_y == -100
+              direction.y -= 1
+            end
+          end
+
           direction.y -= 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Up)
           direction.y += 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Down)
           direction.x -= 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Left)
@@ -146,7 +162,11 @@ module Ehden
           app.render(window)
         else
           app.render_title(window)
-          app.start if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
+          if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
+            app.start
+          elsif SF::Joystick.connected?(0) && SF::Joystick.button_pressed?(0, 0)
+            app.start
+          end
         end
         window.display
         Fiber.yield
