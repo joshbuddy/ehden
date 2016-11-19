@@ -162,7 +162,11 @@ module Ehden
           app.render(window)
         else
           app.render_title(window)
-          app.start if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
+          if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
+            app.start
+          elsif SF::Joystick.connected?(0) && SF::Joystick.button_pressed?(0, 0)
+            app.start
+          end
         end
         window.display
         Fiber.yield
