@@ -37,7 +37,6 @@ module Ehden
             @dir.x * cos - @dir.y * sin,
             @dir.x * sin + @dir.y * cos,
           )
-          puts "dir #{dir}"
           @rotation += 1
           @rotation = 0 if @rotation == 100
           app.add_bullet(@pos, dir)
@@ -60,7 +59,6 @@ module Ehden
       # Create a sprite
       @sprite = SF::Sprite.new
       @sprite.texture = @alive_texture
-      # @sprite.texture_rect = SF.int_rect(10, 10, 50, 30)
       @sprite.color = SF.color(255, 255, 255, 200)
       @sprite.position = @pos
     end
@@ -175,6 +173,7 @@ module Ehden
 
     @title_music = SF::Music.new
     @game_music = SF::Music.new
+    @map = Map.new
 
     def initialize(@bullets = [] of Bullet)
       @playing = false
@@ -221,6 +220,7 @@ module Ehden
     def render(window)
       window.clear SF::Color::Black
       current = @clock.elapsed_time.as_milliseconds
+      @map.render(window)
       @bullets.each do |bullet|
         position = bullet.render(window, current)
         xdiff = position.x - @character.pos.x
