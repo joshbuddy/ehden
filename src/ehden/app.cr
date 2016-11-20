@@ -67,7 +67,6 @@ module Ehden
     def move(direction : SF::Vector2f, current : Int32)
       revive if @ehden_status == :revivable && direction != SF.vector2f(0, 0)
       return if @ehden_status == :dead
-      elapsed = current - @current
       @pos += direction
       # boundary detection
       @pos.x = 0_f32 if (@pos.x < 0)
@@ -226,7 +225,7 @@ module Ehden
     end
 
     def render(window)
-      #window.clear SF::Color::Black
+      # window.clear SF::Color::Black
       # for debugging
       case @character.ehden_status
       when :alive
