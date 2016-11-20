@@ -50,12 +50,13 @@ module Ehden
     getter pos, dead
 
     def initialize(@current : Int32)
-      @pos = SF.vector2f(30, 30)
+      @pos = SF.vector2f(15, 15)
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @dead = false
       @kill_time = 2
       @immortal = false
+      @can_revive = false
 
       # Create a sprite
       @sprite = SF::Sprite.new
@@ -66,6 +67,7 @@ module Ehden
     end
 
     def move(direction : SF::Vector2f, current : Int32)
+      revive if @dead
       return if @dead
       elapsed = current - @current
       @pos += direction
@@ -82,13 +84,15 @@ module Ehden
       return if @immortal
       @dead = true
       @sprite.texture = @dead_texture
+      @can_revive = false
       spawn do
         sleep @kill_time.seconds
-        revive
+        @can_revive = true
       end
     end
 
     def revive
+      return if !@can_revive
       @dead = false
       @sprite.texture = @alive_texture
       @immortal = true
