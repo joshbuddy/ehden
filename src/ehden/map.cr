@@ -12,16 +12,22 @@ module Ehden
       @sprite = SF::Sprite.new(TILESET, SF.int_rect(80, 80, 16, 16))
     end
 
+    class GrassTop < Tile
+      getter sprite
+
+      @sprite = SF::Sprite.new(TILESET, SF.int_rect(32, 32, 16, 16))
+    end
+
     class GrassTopLeft < Tile
       getter sprite
 
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(32, 16, 16, 16))
+      @sprite = SF::Sprite.new(TILESET, SF.int_rect(16, 32, 16, 16))
     end
 
     class GrassTopRight < Tile
       getter sprite
 
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(32, 16, 16, 16))
+      @sprite = SF::Sprite.new(TILESET, SF.int_rect(96, 32, 16, 16))
     end
 
     @tile_size = 32
@@ -37,11 +43,12 @@ module Ehden
       tile_map = {
         '0' => Grass.new,
         '1' => GrassTopLeft.new,
-        '2' => GrassTopRight.new,
+        '2' => GrassTop.new,
+        '3' => GrassTopRight.new,
       }
 
       raw_map = <<-EOT
-      1000000000000000000000000000000000000000000000000000
+      1222222222222222222222223222222222222222222222222223
       0000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
