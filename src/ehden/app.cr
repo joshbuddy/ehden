@@ -5,6 +5,8 @@ module Ehden
   abstract class Emitter
     abstract def start(app : App)
   end
+  MAX_WIDTH = 800_f32
+  MAX_HEIGHT = 800_f32
 
   class Shooter < Emitter
     def initialize(@pos : SF::Vector2f, @rate : Int32, @dir : SF::Vector2f)
@@ -68,6 +70,13 @@ module Ehden
       return if @ehden_status == :dead
       elapsed = current - @current
       @pos += direction
+      # boundary detection
+      @pos.x = 0_f32 if (@pos.x < 0)
+      last_x_pos = MAX_WIDTH - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      @pos.x = last_x_pos if (@pos.x > last_x_pos)
+      @pos.y = 0_f32 if (@pos.y < 0)
+      last_y_pos = MAX_HEIGHT - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      @pos.y = last_y_pos if (@pos.y > last_y_pos)
       @sprite.position = @pos
       @current = current
     end
@@ -125,7 +134,7 @@ module Ehden
     DOWN  = SF.vector2f(0, 1)
 
     def self.start
-      window = SF::RenderWindow.new(SF::VideoMode.new(800, 800), "Slider")
+      window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
       app = App.new
       while window.open?
         while event = window.poll_event
