@@ -37,7 +37,6 @@ module Ehden
             @dir.x * cos - @dir.y * sin,
             @dir.x * sin + @dir.y * cos,
           )
-          puts "dir #{dir}"
           @rotation += 1
           @rotation = 0 if @rotation == 100
           app.add_bullet(@pos, dir)
@@ -47,16 +46,14 @@ module Ehden
   end
 
   class Character
-    getter pos, dead
+    getter pos, ehden_status
 
     def initialize(@current : Int32)
       @pos = SF.vector2f(15, 15)
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
-      @dead = false
+      @ehden_status = :alive
       @kill_time = 2
-      @immortal = false
-      @can_revive = false
 
       # Create a sprite
       @sprite = SF::Sprite.new
@@ -67,8 +64,8 @@ module Ehden
     end
 
     def move(direction : SF::Vector2f, current : Int32)
-      revive if @dead
-      return if @dead
+      revive if @ehden_status == :revivable && direction != SF.vector2f(0, 0)
+      return if @ehden_status == :dead
       elapsed = current - @current
       @pos += direction
       @sprite.position = @pos
@@ -80,25 +77,22 @@ module Ehden
     end
 
     def kill
-      return if @dead
-      return if @immortal
-      @dead = true
+      return if @ehden_status != :alive
+      @ehden_status = :dead
       @sprite.texture = @dead_texture
-      @can_revive = false
       spawn do
         sleep @kill_time.seconds
-        @can_revive = true
+        @ehden_status = :revivable
       end
     end
 
     def revive
-      return if !@can_revive
-      @dead = false
+      return if @ehden_status != :revivable
       @sprite.texture = @alive_texture
-      @immortal = true
+      @ehden_status = :immortal
       spawn do
         sleep 2.seconds
-        @immortal = false
+        @ehden_status = :alive
       end
     end
   end
@@ -223,7 +217,18 @@ module Ehden
     end
 
     def render(window)
-      window.clear SF::Color::Black
+      #window.clear SF::Color::Black
+      # for debugging
+      case @character.ehden_status
+      when :alive
+        window.clear SF::Color::Black
+      when :dead
+        window.clear SF::Color::Red
+      when :immortal
+        window.clear SF::Color::Blue
+      when :revivable
+        window.clear SF::Color::Green
+      end
       current = @clock.elapsed_time.as_milliseconds
       @bullets.each do |bullet|
         position = bullet.render(window, current)
@@ -242,8 +247,7 @@ module Ehden
       @bullets << Bullet.new(@clock.elapsed_time.as_milliseconds, pos, dir)
     end
 
-    def move(direction : SF::Vector2f | Nil)
-      return if direction.nil?
+    def move(direction : SF::Vector2f)
       @character.move(direction, @clock.elapsed_time.as_milliseconds)
     end
   end
