@@ -42,17 +42,21 @@ module Ehden
       @sprite = SF::Sprite.new(TILESET, SF.int_rect(96, 48, 16, 16))
     end
 
+    getter start_percent_of, finish_percent_of
+
     @tile_size = 32
     @tiles = [] of Tile
     @width = 52
     @height = 35
     @position = {0, 0}
-    @render_width = 25
-    @render_height = 25
 
     def initialize
+      @render_width = 25.0
+      @render_height = 25.0
       @tiles = [] of Tile
       tile_map = {
+        'S' => Grass.new,
+        'F' => Grass.new,
         '0' => Grass.new,
         '1' => GrassTopLeft.new,
         '2' => GrassTop.new,
@@ -62,13 +66,13 @@ module Ehden
 
       raw_map = <<-EOT
       1222222222222222222222223222222222222222222222222223
+      0000000000S00000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
-      0000000000000000000000004000000000000000000000000000
-      0000000000000000000000004000000000000000000000000000
+      F000000000000000000000004000000000000000000000000000
       0000000000000000000000004000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000
@@ -97,11 +101,18 @@ module Ehden
       0000000000000000000000000000000000000000000000000000
       EOT
 
-      lines = raw_map.lines.map do |char_line|
-        char_line.chomp.each_char do |c|
+      @start_percent_of = SF.vector2f(-1,-1)
+      @finish_percent_of = SF.vector2f(-1,-1)
+
+      lines = raw_map.lines.each_with_index do |char_line, y|
+        char_line.chomp.each_char_with_index do |c, x|
           @tiles << tile_map.fetch(c)
+          @start_percent_of = SF.vector2f(x/@render_width,y/@render_height) if c == 'S'
+          @finish_percent_of = SF.vector2f(x/@render_width,y/@render_height) if c == 'F'
         end
       end
+      puts "No start" if @start_percent_of == SF.vector2f(-1,-1)
+      puts "No finish" if @finish_percent_of == SF.vector2f(-1,-1)
     end
 
     def render(window)
