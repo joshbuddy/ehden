@@ -50,8 +50,8 @@ module Ehden
   class Character
     getter pos, ehden_status
 
-    def initialize(@current : Int32)
-      @pos = SF.vector2f(15, 15)
+    def initialize(@current : Int32, start : SF::Vector2f)
+      @pos = SF.vector2f(start.x * MAX_WIDTH, start.y * MAX_HEIGHT)
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @ehden_status = :alive
@@ -185,7 +185,7 @@ module Ehden
     def initialize(@bullets = [] of Bullet)
       @playing = false
       @clock = SF::Clock.new
-      @character = Character.new(@clock.elapsed_time.as_milliseconds)
+      @character = Character.new(@clock.elapsed_time.as_milliseconds, @map.start_percent_of)
       @emitters = [
         Shooter.new(pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
         Sprinkler.new(pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
