@@ -180,7 +180,7 @@ module Ehden
 
     @title_music = SF::Music.new
     @game_music = SF::Music.new
-    @map = Map.new
+    @map = Map.new("/Users/jlin/projects/ehden/src/ehden/first_room.map")
 
     def initialize(@bullets = [] of Bullet)
       @playing = false
