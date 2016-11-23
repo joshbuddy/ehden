@@ -4,6 +4,7 @@ module Ehden
       abstract def sprite : SF::Sprite
 
       TILESET = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
+      SNOW_TILESET = SF::Texture.from_file("./src/ehden/tiles/snow-expansion.png")
     end
 
     class Grass < Tile
@@ -42,6 +43,12 @@ module Ehden
       @sprite = SF::Sprite.new(TILESET, SF.int_rect(96, 48, 16, 16))
     end
 
+    class EndTile < Tile
+      getter sprite
+
+      @sprite = SF::Sprite.new(SNOW_TILESET, SF.int_rect(224, 208, 16, 16))
+    end
+
     getter start_percent_of, finish_percent_of
 
     @tile_size = 32
@@ -56,7 +63,7 @@ module Ehden
       @tiles = [] of Tile
       tile_map = {
         'S' => Grass.new,
-        'F' => Grass.new,
+        'F' => EndTile.new,
         '0' => Grass.new,
         '1' => GrassTopLeft.new,
         '2' => GrassTop.new,
