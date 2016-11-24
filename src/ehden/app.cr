@@ -342,9 +342,9 @@ module Ehden
           end
         end
         if hit
-          sword_hit.play
+          sword_hit.play if sword_hit.status == SF::SoundSource::Stopped
         else
-          sword_miss.play
+          sword_miss.play if sword_miss.status == SF::SoundSource::Stopped
         end
       end
     end
