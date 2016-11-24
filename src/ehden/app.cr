@@ -5,7 +5,8 @@ module Ehden
   abstract class Emitter
     abstract def start(app : App)
   end
-  MAX_WIDTH = 800_f32
+
+  MAX_WIDTH  = 800_f32
   MAX_HEIGHT = 800_f32
 
   class Shooter < Emitter
@@ -125,6 +126,7 @@ module Ehden
   end
 
   class Bullet
+    getter pos
     property killer = false
 
     def initialize(@start_time : Int32, @pos : SF::Vector2f, @dir : SF::Vector2f)
@@ -150,7 +152,7 @@ module Ehden
     UP    = SF.vector2f(0, -1)
     RIGHT = SF.vector2f(1, 0)
     DOWN  = SF.vector2f(0, 1)
-    MAPS = [["./src/ehden/first_room.level", "map"], ["./src/ehden/second_room.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
+    MAPS  = [["./src/ehden/first_room.level", "map"], ["./src/ehden/second_room.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
@@ -220,6 +222,14 @@ module Ehden
       @title_music.open_from_file("./src/ehden/title.ogg") || raise "no music!"
       @title_music.loop = true # make it loop
       @title_music.play
+    end
+
+    def sword_hit
+      @sword_hit ||= SF::Music.from_file("./src/ehden/sword_hit.ogg")
+    end
+
+    def sword_miss
+      @sword_miss ||= SF::Music.from_file("./src/ehden/sword_miss.ogg")
     end
 
     def character
@@ -303,10 +313,10 @@ module Ehden
       pos += direction
       # boundary detection
       pos.x = 0_f32 if (pos.x < 0)
-      last_x_pos = MAX_WIDTH - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      last_x_pos = MAX_WIDTH - 60_f32 # should be sprite width but I'm too lazy to figure that right
       pos.x = last_x_pos if (pos.x > last_x_pos)
       pos.y = 0_f32 if (pos.y < 0)
-      last_y_pos = MAX_HEIGHT - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      last_y_pos = MAX_HEIGHT - 60_f32 # should be sprite width but I'm too lazy to figure that right
       pos.y = last_y_pos if (pos.y > last_y_pos)
 
       character.move(pos, @clock.elapsed_time.as_milliseconds)
@@ -317,11 +327,24 @@ module Ehden
 
     def swing
       if character.swing
+        hit = false
         @bullets.each_with_index do |bullet, b|
           pos = bullet.position(@clock.elapsed_time.as_milliseconds)
           if character.sword.contains? pos
-            @bullets[b] = Bullet.new(@clock.elapsed_time.as_milliseconds, pos, character.facing * 3)
+            puts "(character.pos + {23, 30} - pos) / -30 #{(character.pos + {23, 30} - pos) / -30}"
+            @bullets[b] = Bullet.new(
+              @clock.elapsed_time.as_milliseconds,
+              pos,
+              (character.pos + {23, 30} - pos) / -30
+            )
+            hit = true
+            break
           end
+        end
+        if hit
+          sword_hit.play
+        else
+          sword_miss.play
         end
       end
     end
