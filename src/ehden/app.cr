@@ -130,6 +130,7 @@ module Ehden
     UP    = SF.vector2f(0, -1)
     RIGHT = SF.vector2f(1, 0)
     DOWN  = SF.vector2f(0, 1)
+    MAPS = [["/Users/jlin/projects/ehden/src/ehden/first_room.level", "map"], ["/Users/jlin/projects/ehden/src/ehden/second_room.level", "map"], ["/Users/jlin/projects/ehden/src/ehden/flowey_encounter_1.level", "speech"]]
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
@@ -180,9 +181,10 @@ module Ehden
 
     @title_music = SF::Music.new
     @game_music = SF::Music.new
-    @map = Map.new
 
     def initialize(@bullets = [] of Bullet)
+      @current_level = 0
+      @map = Map.new(MAPS[@current_level][0])
       @playing = false
       @clock = SF::Clock.new
       @character = Character.new(@clock.elapsed_time.as_milliseconds, @map.start_percent_of)
@@ -199,6 +201,14 @@ module Ehden
       @title_music.open_from_file("./src/ehden/title.ogg") || raise "no music!"
       @title_music.loop = true # make it loop
       @title_music.play
+    end
+
+    def next_map
+      @current_level = @current_level + 1
+      @map = Map.new(MAPS[@current_level][0])
+      puts @current_level
+      puts MAPS[@current_level][0]
+      @character = Character.new(@clock.elapsed_time.as_milliseconds, @map.start_percent_of)
     end
 
     def playing?
@@ -258,6 +268,9 @@ module Ehden
 
     def move(direction : SF::Vector2f)
       @character.move(direction, @clock.elapsed_time.as_milliseconds)
+      # go to next map if character walks close enough to the end marker
+      distance_vector = @character.pos - SF.vector2f(@map.finish_percent_of.x * MAX_WIDTH, @map.finish_percent_of.y * MAX_HEIGHT)
+      next_map if Math.sqrt(distance_vector.x ** 2 + distance_vector.y ** 2) < 50
     end
   end
 end
