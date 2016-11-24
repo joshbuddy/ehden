@@ -50,12 +50,15 @@ module Ehden
   class Character
     getter pos, ehden_status
 
+    @dead_music = SF::Music.new
+
     def initialize(@current : Int32, start : SF::Vector2f)
       @pos = SF.vector2f(start.x * MAX_WIDTH, start.y * MAX_HEIGHT)
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @ehden_status = :alive
       @kill_time = 2
+      @dead_music.open_from_file("./src/ehden/dead.ogg") || raise "no music!"
 
       # Create a sprite
       @sprite = SF::Sprite.new
@@ -64,18 +67,8 @@ module Ehden
       @sprite.position = @pos
     end
 
-    def move(direction : SF::Vector2f, current : Int32)
-      revive if @ehden_status == :revivable && direction != SF.vector2f(0, 0)
-      return if @ehden_status == :dead
-      @pos += direction
-      # boundary detection
-      @pos.x = 0_f32 if (@pos.x < 0)
-      last_x_pos = MAX_WIDTH - 60_f32 #should be sprite width but I'm too lazy to figure that right
-      @pos.x = last_x_pos if (@pos.x > last_x_pos)
-      @pos.y = 0_f32 if (@pos.y < 0)
-      last_y_pos = MAX_HEIGHT - 60_f32 #should be sprite width but I'm too lazy to figure that right
-      @pos.y = last_y_pos if (@pos.y > last_y_pos)
-      @sprite.position = @pos
+    def move(pos, current)
+      @sprite.position = @pos = pos
       @current = current
     end
 
@@ -87,6 +80,7 @@ module Ehden
       return if @ehden_status != :alive
       @ehden_status = :dead
       @sprite.texture = @dead_texture
+      @dead_music.play
       spawn do
         sleep @kill_time.seconds
         @ehden_status = :revivable
@@ -130,7 +124,7 @@ module Ehden
     UP    = SF.vector2f(0, -1)
     RIGHT = SF.vector2f(1, 0)
     DOWN  = SF.vector2f(0, 1)
-    MAPS = [["/Users/jlin/projects/ehden/src/ehden/first_room.level", "map"], ["/Users/jlin/projects/ehden/src/ehden/second_room.level", "map"], ["/Users/jlin/projects/ehden/src/ehden/flowey_encounter_1.level", "speech"]]
+    MAPS = [["./src/ehden/first_room.level", "map"], ["./src/ehden/second_room.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
@@ -232,6 +226,9 @@ module Ehden
       font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
       text = SF::Text.new("EHDEN!!!!", font, 200)
       window.draw text, SF::RenderStates.new(shader: wb_shader)
+      instructions = SF::Text.new("Dodge bullets and press button", font, 40)
+      instructions.position = {100, 400}
+      window.draw instructions
     end
 
     def render(window)
@@ -267,7 +264,20 @@ module Ehden
     end
 
     def move(direction : SF::Vector2f)
-      @character.move(direction, @clock.elapsed_time.as_milliseconds)
+      @character.revive if @character.ehden_status == :revivable && direction != SF.vector2f(0, 0)
+      return if @character.ehden_status == :dead
+
+      pos = @character.pos
+      pos += direction
+      # boundary detection
+      pos.x = 0_f32 if (pos.x < 0)
+      last_x_pos = MAX_WIDTH - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      pos.x = last_x_pos if (pos.x > last_x_pos)
+      pos.y = 0_f32 if (pos.y < 0)
+      last_y_pos = MAX_HEIGHT - 60_f32 #should be sprite width but I'm too lazy to figure that right
+      pos.y = last_y_pos if (pos.y > last_y_pos)
+
+      @character.move(pos, @clock.elapsed_time.as_milliseconds)
       # go to next map if character walks close enough to the end marker
       distance_vector = @character.pos - SF.vector2f(@map.finish_percent_of.x * MAX_WIDTH, @map.finish_percent_of.y * MAX_HEIGHT)
       next_map if Math.sqrt(distance_vector.x ** 2 + distance_vector.y ** 2) < 50

@@ -87,6 +87,10 @@ module Ehden
       puts "No finish" if @finish_percent_of == SF.vector2f(-1,-1)
     end
 
+    def tile_at(x, y)
+      @tiles[y / @tile_size * @width + x / @tile_size]
+    end
+
     def render(window)
       (@position[0]..@render_width + @position[0]).each do |x|
         (@position[1]..@render_height + @position[1]).each do |y|
