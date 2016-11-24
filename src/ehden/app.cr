@@ -49,16 +49,18 @@ module Ehden
 
   class Character
     getter pos, ehden_status
+    property facing
 
     @dead_music = SF::Music.new
 
-    def initialize(@current : Int32, start : SF::Vector2f)
-      @pos = SF.vector2f(start.x * MAX_WIDTH, start.y * MAX_HEIGHT)
+    def initialize(@current : Int32, @pos : SF::Vector2f)
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @ehden_status = :alive
       @kill_time = 2
       @dead_music.open_from_file("./src/ehden/dead.ogg") || raise "no music!"
+      @facing = SF::Vector2f.new
+      @last_swing = @current
 
       # Create a sprite
       @sprite = SF::Sprite.new
@@ -70,6 +72,30 @@ module Ehden
     def move(pos, current)
       @sprite.position = @pos = pos
       @current = current
+    end
+
+    def face(pos, current)
+      @sprite.position = @pos = pos
+      @current = current
+    end
+
+    def swing
+      if @current - @last_swing > 1000
+        @last_swing = @current
+      end
+    end
+
+    def boundaries
+      SF::Rect(Int32).new(11 + @pos.x.to_i, 1 + @pos.y.to_i, 25, 58)
+    end
+
+    def sword
+      SF::Rect(Int32).new(
+        -3 + (@pos.x + @facing.x * 50).to_i,
+        1 + (@pos.y + @facing.y * 50).to_i,
+        50,
+        50
+      )
     end
 
     def render(window)
@@ -158,6 +184,7 @@ module Ehden
           direction.y += 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Down)
           direction.x -= 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Left)
           direction.x += 1 if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Right)
+          app.swing if SF::Keyboard.key_pressed?(SF::Keyboard::Key::Space)
           app.move(direction)
           app.render(window)
         else
@@ -178,10 +205,8 @@ module Ehden
 
     def initialize(@bullets = [] of Bullet)
       @current_level = 0
-      @map = Map.new(MAPS[@current_level][0])
       @playing = false
       @clock = SF::Clock.new
-      @character = Character.new(@clock.elapsed_time.as_milliseconds, @map.start_percent_of)
       @emitters = [
         Shooter.new(pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
         Sprinkler.new(pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
@@ -197,12 +222,22 @@ module Ehden
       @title_music.play
     end
 
+    def character
+      @character ||= Character.new(@clock.elapsed_time.as_milliseconds, map.start)
+    end
+
+    def map
+      map = @map
+      if @loaded_level != @current_level
+        @loaded_level = @current_level
+        map = nil
+      end
+      @map = map || Map.new(MAPS[@current_level][0], MAX_WIDTH, MAX_HEIGHT)
+    end
+
     def next_map
-      @current_level = @current_level + 1
-      @map = Map.new(MAPS[@current_level][0])
-      puts @current_level
-      puts MAPS[@current_level][0]
-      @character = Character.new(@clock.elapsed_time.as_milliseconds, @map.start_percent_of)
+      @current_level += 1
+      character.move(map.start, @clock.elapsed_time.as_milliseconds)
     end
 
     def playing?
@@ -234,7 +269,7 @@ module Ehden
     def render(window)
       # window.clear SF::Color::Black
       # for debugging
-      case @character.ehden_status
+      case character.ehden_status
       when :alive
         window.clear SF::Color::Black
       when :dead
@@ -245,18 +280,15 @@ module Ehden
         window.clear SF::Color::Green
       end
       current = @clock.elapsed_time.as_milliseconds
-      @map.render(window)
+      map.render(window)
       @bullets.each do |bullet|
         position = bullet.render(window, current)
-        xdiff = position.x - @character.pos.x
-        ydiff = position.y - @character.pos.y
-        if (xdiff * xdiff + ydiff * ydiff) < 300
-          bullet.render(window, current)
+        if (character.boundaries.contains? position)
           bullet.killer = true
-          @character.kill
+          character.kill
         end
       end
-      @character.render(window)
+      character.render(window)
     end
 
     def add_bullet(pos : SF::Vector2f, dir : SF::Vector2f)
@@ -264,10 +296,10 @@ module Ehden
     end
 
     def move(direction : SF::Vector2f)
-      @character.revive if @character.ehden_status == :revivable && direction != SF.vector2f(0, 0)
-      return if @character.ehden_status == :dead
+      character.revive if character.ehden_status == :revivable && direction != SF.vector2f(0, 0)
+      return if character.ehden_status == :dead
 
-      pos = @character.pos
+      pos = character.pos
       pos += direction
       # boundary detection
       pos.x = 0_f32 if (pos.x < 0)
@@ -277,10 +309,21 @@ module Ehden
       last_y_pos = MAX_HEIGHT - 60_f32 #should be sprite width but I'm too lazy to figure that right
       pos.y = last_y_pos if (pos.y > last_y_pos)
 
-      @character.move(pos, @clock.elapsed_time.as_milliseconds)
+      character.move(pos, @clock.elapsed_time.as_milliseconds)
+      character.facing = direction if direction.x.abs + direction.y.abs > 0
       # go to next map if character walks close enough to the end marker
-      distance_vector = @character.pos - SF.vector2f(@map.finish_percent_of.x * MAX_WIDTH, @map.finish_percent_of.y * MAX_HEIGHT)
-      next_map if Math.sqrt(distance_vector.x ** 2 + distance_vector.y ** 2) < 50
+      next_map if character.boundaries.contains? map.finish
+    end
+
+    def swing
+      if character.swing
+        @bullets.each_with_index do |bullet, b|
+          pos = bullet.position(@clock.elapsed_time.as_milliseconds)
+          if character.sword.contains? pos
+            @bullets[b] = Bullet.new(@clock.elapsed_time.as_milliseconds, pos, character.facing * 3)
+          end
+        end
+      end
     end
   end
 end

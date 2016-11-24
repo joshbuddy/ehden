@@ -1,3 +1,5 @@
+require "crsfml"
+
 module Ehden
   class Map
     abstract class Tile
@@ -49,17 +51,17 @@ module Ehden
       @sprite = SF::Sprite.new(SNOW_TILESET, SF.int_rect(224, 208, 16, 16))
     end
 
-    getter start_percent_of, finish_percent_of
-
     @tile_size = 32
     @tiles = [] of Tile
     @width = 52
     @height = 35
     @position = {0, 0}
 
-    def initialize(filepath)
-      @render_width = 25.0
-      @render_height = 25.0
+    def initialize(filepath, map_width : Float32, map_height : Float32)
+      @render_width = map_width
+      @render_height = map_height
+      @render_width /= @tile_size
+      @render_height /= @tile_size
       @tiles = [] of Tile
       tile_map = {
         'S' => Grass.new,
@@ -73,18 +75,32 @@ module Ehden
 
       raw_map = File.read(filepath)
 
-      @start_percent_of = SF.vector2f(-1,-1)
-      @finish_percent_of = SF.vector2f(-1,-1)
+      @start = SF.vector2f(-1,-1)
+      @finish = SF.vector2f(-1,-1)
 
       lines = raw_map.lines.each_with_index do |char_line, y|
         char_line.chomp.each_char_with_index do |c, x|
           @tiles << tile_map.fetch(c)
-          @start_percent_of = SF.vector2f(x/@render_width,y/@render_height) if c == 'S'
-          @finish_percent_of = SF.vector2f(x/@render_width,y/@render_height) if c == 'F'
+          @start = SF.vector2f(x, y) if c == 'S'
+          @finish = SF.vector2f(x, y) if c == 'F'
         end
       end
-      puts "No start" if @start_percent_of == SF.vector2f(-1,-1)
-      puts "No finish" if @finish_percent_of == SF.vector2f(-1,-1)
+      raise "No start" if @start == SF.vector2f(-1,-1)
+      raise "No finish" if @finish == SF.vector2f(-1,-1)
+    end
+
+    def start
+      SF.vector2f(
+        @start.x * @tile_size + @tile_size / 2,
+        @start.y * @tile_size + @tile_size / 2,
+      )
+    end
+
+    def finish
+      SF.vector2f(
+        @finish.x * @tile_size + @tile_size / 2,
+        @finish.y * @tile_size + @tile_size / 2,
+      )
     end
 
     def tile_at(x, y)
