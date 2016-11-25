@@ -58,7 +58,7 @@ module Ehden
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @ehden_status = :alive
-      @kill_time = 2
+      @kill_time = 3
       @dead_music.open_from_file("./src/ehden/dead.ogg") || raise "no music!"
       @facing = SF::Vector2f.new
       @last_swing = @current
@@ -86,8 +86,8 @@ module Ehden
       end
     end
 
-    def boundaries
-      SF::Rect(Int32).new(11 + @pos.x.to_i, 1 + @pos.y.to_i, 25, 58)
+    def boundaries(pos = @pos)
+      SF::Rect(Int32).new(11 + pos.x.to_i, 1 + pos.y.to_i, 25, 58)
     end
 
     def sword
@@ -271,7 +271,7 @@ module Ehden
       font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
       text = SF::Text.new("EHDEN!!!!", font, 200)
       window.draw text, SF::RenderStates.new(shader: wb_shader)
-      instructions = SF::Text.new("Dodge bullets and press button", font, 40)
+      instructions = SF::Text.new("Dodge bullets, press button and swing bullets at rocks1", font, 40)
       instructions.position = {100, 400}
       window.draw instructions
     end
@@ -297,6 +297,10 @@ module Ehden
           bullet.killer = true
           character.kill
         end
+        if (!map.passable? position)
+          @bullets.delete(bullet)
+          map.destruct position
+        end
       end
       character.render(window)
     end
@@ -319,10 +323,12 @@ module Ehden
       last_y_pos = MAX_HEIGHT - 60_f32 # should be sprite width but I'm too lazy to figure that right
       pos.y = last_y_pos if (pos.y > last_y_pos)
 
-      character.move(pos, @clock.elapsed_time.as_milliseconds)
-      character.facing = direction if direction.x.abs + direction.y.abs > 0
-      # go to next map if character walks close enough to the end marker
-      next_map if character.boundaries.contains? map.finish
+      if map.passable? character.boundaries(pos)
+        character.move(pos, @clock.elapsed_time.as_milliseconds)
+        character.facing = direction if direction.x.abs + direction.y.abs > 0
+        # go to next map if character walks close enough to the end marker
+        next_map if character.boundaries.contains? map.finish
+      end
     end
 
     def swing
@@ -331,7 +337,6 @@ module Ehden
         @bullets.each_with_index do |bullet, b|
           pos = bullet.position(@clock.elapsed_time.as_milliseconds)
           if character.sword.contains? pos
-            puts "(character.pos + {23, 30} - pos) / -30 #{(character.pos + {23, 30} - pos) / -30}"
             @bullets[b] = Bullet.new(
               @clock.elapsed_time.as_milliseconds,
               pos,

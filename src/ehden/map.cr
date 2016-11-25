@@ -2,53 +2,22 @@ require "crsfml"
 
 module Ehden
   class Map
-    abstract class Tile
-      abstract def sprite : SF::Sprite
+    TILESET = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
+    SNOW_TILESET = SF::Texture.from_file("./src/ehden/tiles/snow-expansion.png")
 
-      TILESET = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
-      SNOW_TILESET = SF::Texture.from_file("./src/ehden/tiles/snow-expansion.png")
-    end
+    class Tile
+      getter sprite, passable, bg, destructible
 
-    class Grass < Tile
-      getter sprite
+      def initialize(tileset, x, y, width = 16, height = 16, @passable : Bool = true, @destructible : Bool = false, @bg : Tile | Nil = nil)
+        @sprite = SF::Sprite.new(tileset, SF.int_rect(x, y, width, height))
+        @sprite.scale = {2, 2}
+      end
 
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(80, 80, 16, 16))
-    end
-
-    class GrassTop < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(32, 32, 16, 16))
-    end
-
-    class GrassTopLeft < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(16, 32, 16, 16))
-    end
-
-    class GrassLeft < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(16, 32, 16, 16))
-    end
-
-    class GrassTopRight < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(96, 32, 16, 16))
-    end
-
-    class GrassRight < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(TILESET, SF.int_rect(96, 48, 16, 16))
-    end
-
-    class EndTile < Tile
-      getter sprite
-
-      @sprite = SF::Sprite.new(SNOW_TILESET, SF.int_rect(224, 208, 16, 16))
+      def render(window, position, scale)
+        sprite.position = position
+        bg.try &.render(window, position, scale)
+        window.draw sprite
+      end
     end
 
     @tile_size = 32
@@ -63,14 +32,17 @@ module Ehden
       @render_width /= @tile_size
       @render_height /= @tile_size
       @tiles = [] of Tile
+      grass = Tile.new(tileset: TILESET, x: 80, y: 80)
       tile_map = {
-        'S' => Grass.new,
-        'F' => EndTile.new,
-        '0' => Grass.new,
-        '1' => GrassTopLeft.new,
-        '2' => GrassTop.new,
-        '3' => GrassTopRight.new,
-        '4' => GrassRight.new,
+        'S' => grass,
+        'F' => Tile.new(tileset: SNOW_TILESET, x: 224, y: 208),
+        '0' => grass,
+        '1' => Tile.new(tileset: TILESET, x: 16, y: 32),
+        '2' => Tile.new(tileset: TILESET, x: 32, y: 32),
+        '3' => Tile.new(tileset: TILESET, x: 96, y: 32),
+        '4' => Tile.new(tileset: TILESET, x: 96, y: 48),
+        'X' => Tile.new(tileset: SNOW_TILESET, x: 256, y: 0, passable: false, bg: grass),
+        'W' => Tile.new(tileset: SNOW_TILESET, x: 256, y: 48, passable: false, destructible: true, bg: grass),
       }
 
       raw_map = File.read(filepath)
@@ -103,19 +75,47 @@ module Ehden
       )
     end
 
-    def tile_at(x, y)
-      @tiles[y / @tile_size * @width + x / @tile_size]
+    def passable?(rect : SF::Rect)
+      top_left = tile_position_at SF.vector2f(rect.left, rect.top)
+      bottom_right = tile_position_at SF.vector2f(rect.left + rect.width, rect.top + rect.height)
+
+      (top_left[:x]..bottom_right[:x]).each do |x|
+        (top_left[:y]..bottom_right[:y]).each do |y|
+          return false unless tile_at(x, y).try &.passable
+        end
+      end
+      return true
+    end
+
+    def passable?(point : SF::Vector2f)
+      tile_at(**tile_position_at(point)).try &.passable
     end
 
     def render(window)
       (@position[0]..@render_width + @position[0]).each do |x|
         (@position[1]..@render_height + @position[1]).each do |y|
-          tile = @tiles[x + y * @width]
-          tile.sprite.position = {x * @tile_size, y * @tile_size}
-          tile.sprite.scale = {2, 2}
-          window.draw tile.sprite
+          tile_at(x, y).try &.render(window, {x * @tile_size, y * @tile_size}, {2, 2})
         end
       end
+    end
+
+    def destruct(position)
+      xy = tile_position_at(position)
+      tile = @tiles[xy[:x] + xy[:y] * @width]
+      return false unless tile.destructible
+      @tiles[xy[:x] + xy[:y] * @width] = tile.bg || tile
+    end
+
+    private def tile_position_at(position)
+      {
+        x: position.x.to_i / @tile_size,
+        y: position.y.to_i / @tile_size,
+      }
+    end
+
+    private def tile_at(x, y)
+      return nil unless (@position[0]..@render_width + @position[0]).includes?(x) && (@position[1]..@render_height + @position[1]).includes?(y)
+      @tiles[x + y * @width]
     end
   end
 end
