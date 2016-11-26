@@ -318,7 +318,7 @@ module Ehden
       character.render(window)
       (0...character.lives).each do |i|
         heart = heart_shape
-        heart.position = { i * 50 + 100, 700 }
+        heart.position = { i * 50 + 25, 750 }
         window.draw heart
       end
     end
