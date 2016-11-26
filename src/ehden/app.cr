@@ -291,7 +291,7 @@ module Ehden
       font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
       text = SF::Text.new("EHDEN!!!!", font, 200)
       window.draw text, SF::RenderStates.new(shader: wb_shader)
-      instructions = SF::Text.new("Dodge bullets, press button and swing bullets at rocks1", font, 40)
+      instructions = SF::Text.new("Hit bullets at fences to break them!", font, 40)
       instructions.position = {100, 400}
       window.draw instructions
     end
