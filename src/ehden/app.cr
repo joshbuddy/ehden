@@ -49,12 +49,13 @@ module Ehden
   end
 
   class Character
-    getter pos, ehden_status
+    getter pos, ehden_status, lives
     property facing
 
     @dead_music = SF::Music.new
 
     def initialize(@current : Int32, @pos : SF::Vector2f)
+      @lives = 3
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @ehden_status = :alive
@@ -105,12 +106,17 @@ module Ehden
 
     def kill
       return if @ehden_status != :alive
+      @lives = @lives - 1
       @ehden_status = :dead
       @sprite.texture = @dead_texture
       @dead_music.play
       spawn do
         sleep @kill_time.seconds
-        @ehden_status = :revivable
+        if @lives == 0
+          @ehden_status = :gameoverman
+        else
+          @ehden_status = :revivable
+        end
       end
     end
 
@@ -122,6 +128,10 @@ module Ehden
         sleep 2.seconds
         @ehden_status = :alive
       end
+    end
+
+    def add_life
+      @lives = @lives + 1
     end
   end
 
@@ -247,6 +257,7 @@ module Ehden
 
     def next_map
       @current_level += 1
+      character.add_life
       character.move(map.start, @clock.elapsed_time.as_milliseconds)
     end
 
@@ -288,6 +299,8 @@ module Ehden
         window.clear SF::Color::Blue
       when :revivable
         window.clear SF::Color::Green
+      when :gameoverman
+        @playing = false
       end
       current = @clock.elapsed_time.as_milliseconds
       map.render(window)
@@ -303,6 +316,24 @@ module Ehden
         end
       end
       character.render(window)
+      (0...character.lives).each do |i|
+        heart = heart_shape
+        heart.position = { i * 50 + 100, 700 }
+        window.draw heart
+      end
+    end
+
+    def heart_shape()
+      heart = SF::ConvexShape.new
+      heart.point_count = 6
+      heart[0] = SF.vector2f(10, 10)
+      heart[1] = SF.vector2f(15, 0)
+      heart[2] = SF.vector2f(20, 10)
+      heart[3] = SF.vector2f(10, 25)
+      heart[4] = SF.vector2f(0, 10)
+      heart[5] = SF.vector2f(5, 0)
+      heart.fill_color = SF::Color::Red
+      heart
     end
 
     def add_bullet(pos : SF::Vector2f, dir : SF::Vector2f)
