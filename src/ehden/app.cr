@@ -163,7 +163,7 @@ module Ehden
     UP    = SF.vector2f(0, -1)
     RIGHT = SF.vector2f(1, 0)
     DOWN  = SF.vector2f(0, 1)
-    MAPS  = [["./src/ehden/dodge_bullets.level", "map"], ["./src/ehden/break_fences.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
+    MAPS  = [["./src/ehden/dodge_bullets.level", "map"], ["./src/ehden/impassable_objects.level", "map"], ["./src/ehden/break_fences.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
