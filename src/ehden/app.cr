@@ -17,7 +17,7 @@ module Ehden
       spawn do
         loop do
           sleep @rate.milliseconds
-          app.add_bullet(@pos, @dir)
+          app.add_bullet(@pos, @dir) if app.playing?
         end
       end
     end
@@ -33,16 +33,17 @@ module Ehden
       spawn do
         loop do
           sleep @rate.milliseconds
-
-          cos = Math.cos(Math::PI * 2 * @rotation.to_f / 100)
-          sin = Math.sin(Math::PI * 2 * @rotation.to_f / 100)
-          dir = SF.vector2f(
-            @dir.x * cos - @dir.y * sin,
-            @dir.x * sin + @dir.y * cos,
-          )
-          @rotation += 1
-          @rotation = 0 if @rotation == 100
-          app.add_bullet(@pos, dir)
+          if app.playing?
+            cos = Math.cos(Math::PI * 2 * @rotation.to_f / 100)
+            sin = Math.sin(Math::PI * 2 * @rotation.to_f / 100)
+            dir = SF.vector2f(
+              @dir.x * cos - @dir.y * sin,
+              @dir.x * sin + @dir.y * cos,
+            )
+            @rotation += 1
+            @rotation = 0 if @rotation == 100
+            app.add_bullet(@pos, dir)
+          end
         end
       end
     end
@@ -226,8 +227,7 @@ module Ehden
         Shooter.new(pos: SF.vector2f(606, 600), rate: 1000, dir: SF.vector2f(-0.3, -0.2)),
         Sprinkler.new(pos: SF.vector2f(800, 250), rate: 500, dir: SF.vector2f(-0.3, -0.4)),
       ]
-
-      @emitters.each { |e| e.start(self) }
+      @emitters.map { |e| e.start(self) }
 
       @title_music.open_from_file("./src/ehden/title.ogg") || raise "no music!"
       @title_music.loop = true # make it loop
@@ -271,6 +271,15 @@ module Ehden
       @game_music.open_from_file("./src/ehden/game.ogg") || raise "no music!"
       @game_music.loop = true # make it loop
       @game_music.play
+      @current_level = 0
+      @character = Character.new(@clock.elapsed_time.as_milliseconds, map.start)
+    end
+
+    def gameoverman
+      @playing = false
+      @game_music.stop
+      @title_music.play
+      clear_bullets
     end
 
     def render_title(window)
@@ -300,7 +309,7 @@ module Ehden
       when :revivable
         window.clear SF::Color::Green
       when :gameoverman
-        @playing = false
+        gameoverman
       end
       current = @clock.elapsed_time.as_milliseconds
       map.render(window)
@@ -338,6 +347,10 @@ module Ehden
 
     def add_bullet(pos : SF::Vector2f, dir : SF::Vector2f)
       @bullets << Bullet.new(@clock.elapsed_time.as_milliseconds, pos, dir)
+    end
+
+    def clear_bullets()
+      @bullets = [] of Bullet
     end
 
     def move(direction : SF::Vector2f)
