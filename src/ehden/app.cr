@@ -173,6 +173,8 @@ module Ehden
 
       @maps = [
         Maps::DodgeBullets.new(self),
+        Maps::ImpassableObjects.new(self),
+        Maps::BreakFences.new(self),
       ]
       character.move(@maps[0].start_vector)
 
@@ -326,7 +328,6 @@ module Ehden
               (character.pos + {23, 30} - pos) / -30
             )
             hit = true
-            break
           end
         end
         if hit
