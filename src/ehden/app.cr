@@ -1,65 +1,16 @@
-require "crsfml"
-require "crsfml/audio"
-
 module Ehden
-  abstract class Emitter
-    abstract def start(app : App)
-  end
-
-  MAX_WIDTH  = 800_f32
-  MAX_HEIGHT = 800_f32
-
-  class Shooter < Emitter
-    def initialize(@pos : SF::Vector2f, @rate : Int32, @dir : SF::Vector2f)
-    end
-
-    def start(app)
-      spawn do
-        loop do
-          sleep @rate.milliseconds
-          app.add_bullet(@pos, @dir) if app.playing?
-        end
-      end
-    end
-  end
-
-  class Sprinkler < Emitter
-    @rotation = 0
-
-    def initialize(@pos : SF::Vector2f, @rate : Int32, @dir : SF::Vector2f)
-    end
-
-    def start(app)
-      spawn do
-        loop do
-          sleep @rate.milliseconds
-          if app.playing?
-            cos = Math.cos(Math::PI * 2 * @rotation.to_f / 100)
-            sin = Math.sin(Math::PI * 2 * @rotation.to_f / 100)
-            dir = SF.vector2f(
-              @dir.x * cos - @dir.y * sin,
-              @dir.x * sin + @dir.y * cos,
-            )
-            @rotation += 1
-            @rotation = 0 if @rotation == 100
-            app.add_bullet(@pos, dir)
-          end
-        end
-      end
-    end
-  end
-
   class Character
-    getter pos, status, lives
-    property facing
+    getter status, lives
+    property pos, facing
 
     @dead_music = SF::Music.new
     @count = 0
 
-    def initialize(@pos : SF::Vector2f)
+    def initialize
       @lives = 3
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
+      @pos = SF.vector2f(0, 0)
       @status = :alive
       @kill_time = 3
       @dead_music.open_from_file("./src/ehden/dead.ogg") || raise "no music!"
@@ -158,7 +109,6 @@ module Ehden
     UP    = SF.vector2f(0, -1)
     RIGHT = SF.vector2f(1, 0)
     DOWN  = SF.vector2f(0, 1)
-    MAPS  = [["./src/ehden/dodge_bullets.level", "map"], ["./src/ehden/impassable_objects.level", "map"], ["./src/ehden/break_fences.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
 
     def self.start
       window = SF::RenderWindow.new(SF::VideoMode.new(MAX_WIDTH.to_i, MAX_HEIGHT.to_i), "Slider")
@@ -210,23 +160,25 @@ module Ehden
 
     @title_music = SF::Music.new
     @game_music = SF::Music.new
+    @maps = [] of Map
     @count = 0
 
     def initialize(@bullets = [] of Bullet)
       @current_level = 0
       @playing = false
-      @emitters = [
-        Shooter.new(pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
-        Sprinkler.new(pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
-        Shooter.new(pos: SF.vector2f(40, 40), rate: 1000, dir: SF.vector2f(0.1, 0.3)),
-        Shooter.new(pos: SF.vector2f(606, 600), rate: 1000, dir: SF.vector2f(-0.3, -0.2)),
-        Sprinkler.new(pos: SF.vector2f(800, 250), rate: 500, dir: SF.vector2f(-0.3, -0.4)),
-      ]
-      @emitters.map { |e| e.start(self) }
 
       @title_music.open_from_file("./src/ehden/title.ogg") || raise "no music!"
       @title_music.loop = true # make it loop
       @title_music.play
+
+      @maps = [
+        Maps::DodgeBullets.new(self),
+        Maps::ImpassableObjects.new(self),
+        Maps::BreakFences.new(self),
+      ]
+      character.move(@maps[0].start_vector)
+
+      # [["./src/ehden/dodge_bullets.level", "map"], ["./src/ehden/impassable_objects.level", "map"], ["./src/ehden/break_fences.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
     end
 
     def sword_hit
@@ -238,22 +190,19 @@ module Ehden
     end
 
     def character
-      @character ||= Character.new(map.start)
+      @character ||= Character.new
     end
 
     def map
-      map = @map
-      if @loaded_level != @current_level
-        @loaded_level = @current_level
-        map = nil
-      end
-      @map = map || Map.new(MAPS[@current_level][0], MAX_WIDTH, MAX_HEIGHT)
+      @maps[@current_level]
     end
 
     def next_map
+      map.stop
       @current_level += 1
       character.add_life
-      character.move(map.start)
+      character.move(map.start_vector)
+      map.start
     end
 
     def playing?
@@ -266,7 +215,7 @@ module Ehden
       @game_music.open_from_file("./src/ehden/game.ogg") || raise "no music!"
       @game_music.loop = true # make it loop
       @game_music.play
-      @current_level = 0
+      map.start
     end
 
     def gameoverman
@@ -365,7 +314,7 @@ module Ehden
         character.move(pos)
         character.facing = direction if direction.x.abs + direction.y.abs > 0
         # go to next map if character walks close enough to the end marker
-        next_map if character.boundaries.contains? map.finish
+        next_map if character.boundaries.contains? map.finish_vector
       end
     end
 
@@ -380,7 +329,6 @@ module Ehden
               (character.pos + {23, 30} - pos) / -30
             )
             hit = true
-            break
           end
         end
         if hit

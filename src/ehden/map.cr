@@ -1,39 +1,25 @@
 require "crsfml"
 
 module Ehden
-  class Map
-    TILESET = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
+  abstract class Map
+    TILESET      = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
     SNOW_TILESET = SF::Texture.from_file("./src/ehden/tiles/snow-expansion.png")
-
-    class Tile
-      getter sprite, passable, bg, destructible
-
-      def initialize(tileset, x, y, width = 16, height = 16, @passable : Bool = true, @destructible : Bool = false, @bg : Tile | Nil = nil)
-        @sprite = SF::Sprite.new(tileset, SF.int_rect(x, y, width, height))
-        @sprite.scale = {2, 2}
-      end
-
-      def render(window, position, scale)
-        sprite.position = position
-        bg.try &.render(window, position, scale)
-        window.draw sprite
-      end
-    end
 
     @tile_size = 32
     @tiles = [] of Tile
     @width = 52
     @height = 35
     @position = {0, 0}
+    @enemies = [] of Enemy
 
-    def initialize(filepath, map_width : Float32, map_height : Float32)
+    def initialize(filepath, @app : App, map_width : Float32, map_height : Float32)
       @render_width = map_width
       @render_height = map_height
       @render_width /= @tile_size
       @render_height /= @tile_size
       @tiles = [] of Tile
       grass = Tile.new(tileset: TILESET, x: 80, y: 80)
-      tile_map = {
+      @tile_map = {
         'S' => grass,
         'F' => Tile.new(tileset: SNOW_TILESET, x: 224, y: 208),
         '0' => grass,
@@ -45,30 +31,46 @@ module Ehden
         'W' => Tile.new(tileset: SNOW_TILESET, x: 256, y: 48, passable: false, destructible: true, bg: grass),
       }
 
-      raw_map = File.read(filepath)
+      @start = SF.vector2f(-1, -1)
+      @finish = SF.vector2f(-1, -1)
 
-      @start = SF.vector2f(-1,-1)
-      @finish = SF.vector2f(-1,-1)
+      load(filepath)
+    end
+
+    def start
+      @enemies.each do |enemy|
+        enemy.start(@app)
+      end
+    end
+
+    def stop
+      @enemies.each do |enemy|
+        enemy.start(@app)
+      end
+    end
+
+    private def load(filepath)
+      raw_map = File.read(filepath)
 
       lines = raw_map.lines.each_with_index do |char_line, y|
         char_line.chomp.each_char_with_index do |c, x|
-          @tiles << tile_map.fetch(c)
+          @tiles << @tile_map.fetch(c)
           @start = SF.vector2f(x, y) if c == 'S'
           @finish = SF.vector2f(x, y) if c == 'F'
         end
       end
-      raise "No start" if @start == SF.vector2f(-1,-1)
-      raise "No finish" if @finish == SF.vector2f(-1,-1)
+      raise "No start" if @start == SF.vector2f(-1, -1)
+      raise "No finish" if @finish == SF.vector2f(-1, -1)
     end
 
-    def start
+    def start_vector
       SF.vector2f(
         @start.x * @tile_size + @tile_size / 2,
         @start.y * @tile_size + @tile_size / 2,
       )
     end
 
-    def finish
+    def finish_vector
       SF.vector2f(
         @finish.x * @tile_size + @tile_size / 2,
         @finish.y * @tile_size + @tile_size / 2,
