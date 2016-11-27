@@ -11,12 +11,6 @@ module Ehden
           Sprinkler.new(pos: SF.vector2f(800, 250), rate: 500, dir: SF.vector2f(-0.3, -0.4)),
         ]
       end
-
-      def start
-        @enemies.each do |enemy|
-          enemy.start(@app)
-        end
-      end
     end
   end
 end

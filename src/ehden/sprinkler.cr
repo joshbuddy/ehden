@@ -18,6 +18,7 @@ module Ehden
             )
             @rotation += 1
             @rotation = 0 if @rotation == 100
+            break unless @running
             app.add_bullet(@pos, dir)
           end
         end

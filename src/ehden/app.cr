@@ -198,6 +198,7 @@ module Ehden
     end
 
     def next_map
+      map.stop
       @current_level += 1
       character.add_life
       character.move(map.start_vector)

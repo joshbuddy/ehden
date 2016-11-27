@@ -4,9 +4,11 @@ module Ehden
     end
 
     def start(app)
+      @running = true
       spawn do
         loop do
           sleep @rate.milliseconds
+          break unless @running
           app.add_bullet(@pos, @dir) if app.playing?
         end
       end

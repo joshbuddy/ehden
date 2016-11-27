@@ -10,6 +10,7 @@ module Ehden
     @width = 52
     @height = 35
     @position = {0, 0}
+    @enemies = [] of Enemy
 
     def initialize(filepath, @app : App, map_width : Float32, map_height : Float32)
       @render_width = map_width
@@ -34,6 +35,18 @@ module Ehden
       @finish = SF.vector2f(-1, -1)
 
       load(filepath)
+    end
+
+    def start
+      @enemies.each do |enemy|
+        enemy.start(@app)
+      end
+    end
+
+    def stop
+      @enemies.each do |enemy|
+        enemy.start(@app)
+      end
     end
 
     private def load(filepath)
