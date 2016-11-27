@@ -181,8 +181,6 @@ module Ehden
         Maps::BreakFences.new(self),
       ]
       character.move(@maps[0].start_vector)
-
-      # [["./src/ehden/dodge_bullets.level", "map"], ["./src/ehden/impassable_objects.level", "map"], ["./src/ehden/break_fences.level", "map"], ["./src/ehden/flowey_encounter_1.level", "speech"]]
     end
 
     def sword_hit
