@@ -45,7 +45,7 @@ module Ehden
 
     def stop
       @enemies.each do |enemy|
-        enemy.start(@app)
+        enemy.stop
       end
     end
 
