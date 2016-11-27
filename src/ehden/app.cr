@@ -52,7 +52,11 @@ module Ehden
     end
 
     def render(window)
-      window.draw @sprite
+      if @status == :immortal
+        window.draw @sprite if @count % 2 == 0
+      else
+        window.draw @sprite
+      end
     end
 
     def kill
