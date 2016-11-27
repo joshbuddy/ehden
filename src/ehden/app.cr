@@ -50,42 +50,41 @@ module Ehden
   end
 
   class Character
-    getter pos, ehden_status, lives
+    getter pos, status, lives
     property facing
 
     @dead_music = SF::Music.new
+    @count = 0
 
-    def initialize(@current : Int32, @pos : SF::Vector2f)
+    def initialize(@pos : SF::Vector2f)
       @lives = 3
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
-      @ehden_status = :alive
+      @status = :alive
       @kill_time = 3
       @dead_music.open_from_file("./src/ehden/dead.ogg") || raise "no music!"
       @facing = SF::Vector2f.new
-      @last_swing = @current
 
       # Create a sprite
       @sprite = SF::Sprite.new
       @sprite.texture = @alive_texture
       @sprite.color = SF.color(255, 255, 255, 200)
       @sprite.position = @pos
+      @swinging = false
     end
 
-    def move(pos, current)
+    def move(pos)
+      @count += 1
       @sprite.position = @pos = pos
-      @current = current
-    end
-
-    def face(pos, current)
-      @sprite.position = @pos = pos
-      @current = current
     end
 
     def swing
-      if @current - @last_swing > 1000
-        @last_swing = @current
+      return false if @swinging
+      spawn do
+        sleep 1
+        @swinging = false
       end
+      @swinging = true
     end
 
     def boundaries(pos = @pos)
@@ -106,28 +105,28 @@ module Ehden
     end
 
     def kill
-      return if @ehden_status != :alive
+      return if @status != :alive
       @lives = @lives - 1
-      @ehden_status = :dead
+      @status = :dead
       @sprite.texture = @dead_texture
       @dead_music.play
       spawn do
         sleep @kill_time.seconds
         if @lives == 0
-          @ehden_status = :gameoverman
+          @status = :gameoverman
         else
-          @ehden_status = :revivable
+          @status = :revivable
         end
       end
     end
 
     def revive
-      return if @ehden_status != :revivable
+      return if @status != :revivable
       @sprite.texture = @alive_texture
-      @ehden_status = :immortal
+      @status = :immortal
       spawn do
         sleep 2.seconds
-        @ehden_status = :alive
+        @status = :alive
       end
     end
 
@@ -140,19 +139,15 @@ module Ehden
     getter pos
     property killer = false
 
-    def initialize(@start_time : Int32, @pos : SF::Vector2f, @dir : SF::Vector2f)
+    def initialize(@pos : SF::Vector2f, @dir : SF::Vector2f)
     end
 
-    def position(current_time)
-      elapsed = current_time - @start_time
-      vec = SF.vector2f(@dir.x * elapsed + @pos.x, @dir.y * elapsed + @pos.y)
-    end
-
-    def render(window, current : Int32) : SF::Vector2f
+    def render(window) : SF::Vector2f
       circle = SF::CircleShape.new
       circle.radius = 5
       circle.fill_color = @killer ? SF::Color::Red : SF::Color::White
-      circle.position = position(current)
+      @pos += @dir
+      circle.position = @pos
       window.draw circle
       circle.position
     end
@@ -215,11 +210,11 @@ module Ehden
 
     @title_music = SF::Music.new
     @game_music = SF::Music.new
+    @count = 0
 
     def initialize(@bullets = [] of Bullet)
       @current_level = 0
       @playing = false
-      @clock = SF::Clock.new
       @emitters = [
         Shooter.new(pos: SF.vector2f(50, 50), rate: 1000, dir: SF.vector2f(0.4, 0.2)),
         Sprinkler.new(pos: SF.vector2f(250, 250), rate: 500, dir: SF.vector2f(0, 0.2)),
@@ -243,7 +238,7 @@ module Ehden
     end
 
     def character
-      @character ||= Character.new(@clock.elapsed_time.as_milliseconds, map.start)
+      @character ||= Character.new(map.start)
     end
 
     def map
@@ -258,7 +253,7 @@ module Ehden
     def next_map
       @current_level += 1
       character.add_life
-      character.move(map.start, @clock.elapsed_time.as_milliseconds)
+      character.move(map.start)
     end
 
     def playing?
@@ -272,7 +267,6 @@ module Ehden
       @game_music.loop = true # make it loop
       @game_music.play
       @current_level = 0
-      @character = Character.new(@clock.elapsed_time.as_milliseconds, map.start)
     end
 
     def gameoverman
@@ -285,7 +279,7 @@ module Ehden
     def render_title(window)
       window.clear SF::Color::Black
       wb_shader = SF::Shader.from_file("./src/ehden/shaders/wave.vert", "./src/ehden/shaders/blur.frag")
-      wb_shader.wave_phase @clock.elapsed_time.as_milliseconds
+      wb_shader.wave_phase @count
       wb_shader.wave_amplitude 40, 40
       wb_shader.blur_radius 20
       font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
@@ -294,12 +288,13 @@ module Ehden
       instructions = SF::Text.new("Hit bullets at fences to break them!", font, 40)
       instructions.position = {100, 400}
       window.draw instructions
+      @count += 1
     end
 
     def render(window)
       # window.clear SF::Color::Black
       # for debugging
-      case character.ehden_status
+      case character.status
       when :alive
         window.clear SF::Color::Black
       when :dead
@@ -311,10 +306,9 @@ module Ehden
       when :gameoverman
         gameoverman
       end
-      current = @clock.elapsed_time.as_milliseconds
       map.render(window)
       @bullets.each do |bullet|
-        position = bullet.render(window, current)
+        position = bullet.render(window)
         if (character.boundaries.contains? position)
           bullet.killer = true
           character.kill
@@ -327,12 +321,12 @@ module Ehden
       character.render(window)
       (0...character.lives).each do |i|
         heart = heart_shape
-        heart.position = { i * 50 + 25, 750 }
+        heart.position = {i * 50 + 25, 750}
         window.draw heart
       end
     end
 
-    def heart_shape()
+    def heart_shape
       heart = SF::ConvexShape.new
       heart.point_count = 6
       heart[0] = SF.vector2f(10, 10)
@@ -346,16 +340,16 @@ module Ehden
     end
 
     def add_bullet(pos : SF::Vector2f, dir : SF::Vector2f)
-      @bullets << Bullet.new(@clock.elapsed_time.as_milliseconds, pos, dir)
+      @bullets << Bullet.new(pos, dir)
     end
 
-    def clear_bullets()
+    def clear_bullets
       @bullets = [] of Bullet
     end
 
     def move(direction : SF::Vector2f)
-      character.revive if character.ehden_status == :revivable && direction != SF.vector2f(0, 0)
-      return if character.ehden_status == :dead
+      character.revive if character.status == :revivable && direction != SF.vector2f(0, 0)
+      return if character.status == :dead
 
       pos = character.pos
       pos += direction
@@ -368,7 +362,7 @@ module Ehden
       pos.y = last_y_pos if (pos.y > last_y_pos)
 
       if map.passable? character.boundaries(pos)
-        character.move(pos, @clock.elapsed_time.as_milliseconds)
+        character.move(pos)
         character.facing = direction if direction.x.abs + direction.y.abs > 0
         # go to next map if character walks close enough to the end marker
         next_map if character.boundaries.contains? map.finish
@@ -379,10 +373,9 @@ module Ehden
       if character.swing
         hit = false
         @bullets.each_with_index do |bullet, b|
-          pos = bullet.position(@clock.elapsed_time.as_milliseconds)
+          pos = bullet.pos
           if character.sword.contains? pos
             @bullets[b] = Bullet.new(
-              @clock.elapsed_time.as_milliseconds,
               pos,
               (character.pos + {23, 30} - pos) / -30
             )
