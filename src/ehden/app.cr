@@ -230,13 +230,14 @@ module Ehden
     end
 
     def render_title(window)
-      window.clear SF::Color::Black
+      window.clear @count % 2 == 0 ? SF::Color::Black : SF::Color::Blue
       wb_shader = SF::Shader.from_file("./src/ehden/shaders/wave.vert", "./src/ehden/shaders/blur.frag")
       wb_shader.wave_phase @count
       wb_shader.wave_amplitude 40, 40
       wb_shader.blur_radius 20
       font = SF::Font.from_file("./src/ehden/Cantarell-Regular.otf")
       text = SF::Text.new("EHDEN!!!!", font, 200)
+      text.position = {0, 200}
       window.draw text, SF::RenderStates.new(shader: wb_shader)
       instructions = SF::Text.new("Hit bullets at fences to break them!", font, 40)
       instructions.position = {100, 400}
