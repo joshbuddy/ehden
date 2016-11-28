@@ -166,6 +166,7 @@ module Ehden
         Maps::DodgeBullets.new(self),
         Maps::ImpassableObjects.new(self),
         Maps::BreakFences.new(self),
+        Maps::FloweyEncounter1.new(self),
       ]
       character.move(@maps[0].start_vector)
     end
