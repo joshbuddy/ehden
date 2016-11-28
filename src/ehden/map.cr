@@ -5,12 +5,15 @@ module Ehden
     TILESET      = SF::Texture.from_file("./src/ehden/tiles/tiles.png")
     SNOW_TILESET = SF::Texture.from_file("./src/ehden/tiles/snow-expansion.png")
 
+    getter bullets
+
     @tile_size = 32
     @tiles = [] of Tile
     @width = 52
     @height = 35
     @position = {0, 0}
     @enemies = [] of Enemy
+    @bullets = [] of Bullet
 
     def initialize(filepath, @app : App, map_width : Float32, map_height : Float32)
       @render_width = map_width
@@ -35,18 +38,6 @@ module Ehden
       @finish = SF.vector2f(-1, -1)
 
       load(filepath)
-    end
-
-    def start
-      @enemies.each do |enemy|
-        enemy.start(@app)
-      end
-    end
-
-    def stop
-      @enemies.each do |enemy|
-        enemy.stop
-      end
     end
 
     private def load(filepath)
@@ -93,10 +84,25 @@ module Ehden
       tile_at(**tile_position_at(point)).try &.passable
     end
 
+    def restart
+      @bullets = [] of Bullet
+    end
+
     def render(window)
       (@position[0]..@render_width + @position[0]).each do |x|
         (@position[1]..@render_height + @position[1]).each do |y|
           tile_at(x, y).try &.render(window, {x * @tile_size, y * @tile_size}, {2, 2})
+        end
+      end
+      @enemies.each do |enemy|
+        enemy.render(window)
+        @bullets << enemy.bullet if enemy.shooting
+      end
+      @bullets.each do |bullet|
+        bullet.render(window)
+        unless passable? bullet.position
+          @bullets.delete(bullet)
+          destruct bullet.position
         end
       end
     end

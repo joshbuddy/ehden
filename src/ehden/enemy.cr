@@ -1,11 +1,13 @@
 module Ehden
   abstract class Enemy
-    @running = false
+    getter shooting, pos, dir
 
-    abstract def start(app : App)
+    def initialize
+      @count = 0
+    end
 
-    def stop
-      @running = false
+    def render(window)
+      @shooting = false
     end
   end
 end

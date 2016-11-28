@@ -95,24 +95,6 @@ module Ehden
     end
   end
 
-  class Bullet
-    getter pos
-    property killer = false
-
-    def initialize(@pos : SF::Vector2f, @dir : SF::Vector2f)
-    end
-
-    def render(window) : SF::Vector2f
-      circle = SF::CircleShape.new
-      circle.radius = 5
-      circle.fill_color = @killer ? SF::Color::Red : SF::Color::White
-      @pos += @dir
-      circle.position = @pos
-      window.draw circle
-      circle.position
-    end
-  end
-
   class App
     LEFT  = SF.vector2f(-1, 0)
     UP    = SF.vector2f(0, -1)
@@ -172,7 +154,7 @@ module Ehden
     @maps = [] of Map
     @count = 0
 
-    def initialize(@bullets = [] of Bullet)
+    def initialize
       @current_level = 0
       @playing = false
 
@@ -205,11 +187,9 @@ module Ehden
     end
 
     def next_map
-      map.stop
       @current_level += 1
       character.add_life
       character.move(map.start_vector)
-      map.start
     end
 
     def playing?
@@ -225,15 +205,13 @@ module Ehden
       @current_level = 0
       character.respawn
       character.move(map.start_vector)
-      map.start
+      map.restart
     end
 
     def gameoverman
       @playing = false
       @game_music.stop
       @title_music.play
-      map.stop
-      clear_bullets
     end
 
     def render_title(window)
@@ -268,18 +246,13 @@ module Ehden
         gameoverman
       end
       map.render(window)
-      @bullets.each do |bullet|
-        position = bullet.render(window)
-        if (character.boundaries.contains? position)
+      character.render(window)
+      map.bullets.each do |bullet|
+        if (character.boundaries.contains? bullet.position)
           bullet.killer = true
           character.kill
         end
-        if (!map.passable? position)
-          @bullets.delete(bullet)
-          map.destruct position
-        end
       end
-      character.render(window)
       (0...character.lives).each do |i|
         heart = heart_shape
         heart.position = {i * 50 + 25, 750}
@@ -298,14 +271,6 @@ module Ehden
       heart[5] = SF.vector2f(5, 0)
       heart.fill_color = SF::Color::Red
       heart
-    end
-
-    def add_bullet(pos : SF::Vector2f, dir : SF::Vector2f)
-      @bullets << Bullet.new(pos, dir)
-    end
-
-    def clear_bullets
-      @bullets = [] of Bullet
     end
 
     def move(direction : SF::Vector2f)
@@ -333,12 +298,12 @@ module Ehden
     def swing
       if character.swing
         hit = false
-        @bullets.each_with_index do |bullet, b|
-          pos = bullet.pos
-          if character.sword.contains? pos
-            @bullets[b] = Bullet.new(
-              pos,
-              (character.pos + {23, 30} - pos) / -30
+        map.bullets.each_with_index do |bullet, b|
+          position = bullet.position
+          if character.sword.contains? position
+            map.bullets[b] = Bullet.new(
+              position,
+              (character.pos + {23, 30} - position) / -30
             )
             hit = true
           end

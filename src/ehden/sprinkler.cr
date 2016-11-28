@@ -2,28 +2,27 @@ module Ehden
   class Sprinkler < Enemy
     @rotation = 0
 
+    ROTATION_SPEED = 5000
+
     def initialize(@pos : SF::Vector2f, @rate : Int32, @dir : SF::Vector2f)
+      super()
     end
 
-    def start(app)
-      @running = true
-      spawn do
-        loop do
-          sleep @rate.milliseconds
-          if app.playing?
-            cos = Math.cos(Math::PI * 2 * @rotation.to_f / 100)
-            sin = Math.sin(Math::PI * 2 * @rotation.to_f / 100)
-            dir = SF.vector2f(
-              @dir.x * cos - @dir.y * sin,
-              @dir.x * sin + @dir.y * cos,
-            )
-            @rotation += 1
-            @rotation = 0 if @rotation == 100
-            break unless @running
-            app.add_bullet(@pos, dir)
-          end
-        end
-      end
+    def render(window)
+      @count += 1
+      @rotation += 1
+      @rotation = 0 if @rotation == ROTATION_SPEED
+      @shooting = @count % @rate == 0
+    end
+
+    def bullet
+      cos = Math.cos(Math::PI * 2 * @rotation.to_f / ROTATION_SPEED)
+      sin = Math.sin(Math::PI * 2 * @rotation.to_f / ROTATION_SPEED)
+      dir = SF.vector2f(
+        @dir.x * cos - @dir.y * sin,
+        @dir.x * sin + @dir.y * cos,
+      )
+      Bullet.new(@pos, dir)
     end
   end
 end
