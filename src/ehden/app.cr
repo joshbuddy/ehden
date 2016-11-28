@@ -88,6 +88,11 @@ module Ehden
     def add_life
       @lives = @lives + 1
     end
+
+    def respawn
+      @status = :alive
+      @sprite.texture = @alive_texture
+    end
   end
 
   class Bullet
@@ -217,6 +222,9 @@ module Ehden
       @game_music.open_from_file("./src/ehden/game.ogg") || raise "no music!"
       @game_music.loop = true # make it loop
       @game_music.play
+      @current_level = 0
+      character.respawn
+      character.move(map.start_vector)
       map.start
     end
 
@@ -224,6 +232,7 @@ module Ehden
       @playing = false
       @game_music.stop
       @title_music.play
+      map.stop
       clear_bullets
     end
 
