@@ -9,6 +9,7 @@ module Ehden
     def initialize
       @lives = 3
       @alive_texture = SF::Texture.from_file("./src/ehden/ehden_front2.png")
+      @shield_texture = SF::Texture.from_file("./src/ehden/ehden_shield.png")
       @dead_texture = SF::Texture.from_file("./src/ehden/ehden_dead2.png")
       @pos = SF.vector2f(0, 0)
       @status = :alive
@@ -18,7 +19,6 @@ module Ehden
 
       # Create a sprite
       @sprite = SF::Sprite.new
-      @sprite.texture = @alive_texture
       @sprite.color = SF.color(255, 255, 255, 200)
       @sprite.position = @pos
       @swinging = false
@@ -30,7 +30,7 @@ module Ehden
     end
 
     def swing
-      return false if @swinging
+      return false if @swinging || @status == :dead
       spawn do
         sleep 1
         @swinging = false
@@ -52,6 +52,14 @@ module Ehden
     end
 
     def render(window)
+      @sprite.texture = if @status == :dead
+                          @dead_texture
+                        elsif @swinging
+                          @shield_texture
+                        else
+                          @alive_texture
+                        end
+
       if @status == :immortal
         window.draw @sprite if @count % 2 == 0
       else
@@ -61,9 +69,8 @@ module Ehden
 
     def kill
       return if @status != :alive
-      @lives = @lives - 1
+      @lives -= 1
       @status = :dead
-      @sprite.texture = @dead_texture
       @dead_music.play
       spawn do
         sleep @kill_time.seconds
@@ -77,7 +84,6 @@ module Ehden
 
     def revive
       return if @status != :revivable
-      @sprite.texture = @alive_texture
       @status = :immortal
       spawn do
         sleep 2.seconds
@@ -91,7 +97,6 @@ module Ehden
 
     def respawn
       @status = :alive
-      @sprite.texture = @alive_texture
     end
   end
 
@@ -166,7 +171,7 @@ module Ehden
         Maps::DodgeBullets.new(self),
         Maps::ImpassableObjects.new(self),
         Maps::BreakFences.new(self),
-        Maps::FloweyEncounter1.new(self),
+        Maps::FloweyEncounter1.new(self)
       ]
       character.move(@maps[0].start_vector)
     end
