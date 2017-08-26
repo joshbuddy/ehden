@@ -74,7 +74,7 @@ module Ehden
       @dead_music.play
       spawn do
         sleep @kill_time.seconds
-        if @lives == 0
+        if @lives <= 0
           @status = :gameoverman
         else
           @status = :revivable
@@ -97,6 +97,7 @@ module Ehden
 
     def respawn
       @status = :alive
+      @lives = 3
     end
   end
 
